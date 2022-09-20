@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,12 +58,48 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// Serial output for Debug @ HUART1
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE {
+	HAL_UART_Transmit((UART_HandleTypeDef *)&huart1, (uint8_t*)&ch, 1, 0xFFFF);
+	return ch;
+}
+
+unsigned char UART2RxBuf[1024] = {0};
+unsigned char UART2RxFlg       = 0;
+unsigned int  UART2RxCnt       = 0;
+unsigned char UART2Rxtmp[1]    = {0};
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == USART2) {
+		if (UART2RxCnt < 1024) UART2RxBuf[UART2RxCnt ++] = UART2Rxtmp[0];
+		else {UART2RxFlg = 1; printf("[UART2IT] buffer overflow\r\n"); return;}
+		if ((!(UART2Rxtmp[0]^0x0A)) || (!(UART2Rxtmp[0]^0x0D))) {
+			UART2RxFlg = 1; return;
+		} HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+	}
+}
+
+void UART2_Clear() {
+	// memset(UART2RxBuf, 0, sizeof UART2RxBuf);
+	for (int i=0; i < UART2RxCnt; ++ i) UART2RxBuf[i] = 0;
+	UART2RxFlg = UART2RxCnt = 0;
+}
+
+#define USART2_IT_Start() HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
 
 /* USER CODE END 0 */
 
@@ -107,6 +143,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+	  if (UART2RxFlg) {
+		  HAL_UART_Transmit(&huart1, UART2RxBuf, UART2RxCnt, 0x10);
+		  UART2_Clear();
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -270,6 +311,8 @@ static void MX_USART1_UART_Init(void)
   }
   /* USER CODE BEGIN USART1_Init 2 */
 
+  printf("USART1 INIT succ.\r\n");
+
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -290,7 +333,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
