@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include "decoder.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -154,6 +155,8 @@ int main(void)
 	  UART2RxUklRd();
 	  if (UART2RxFlg) {
 		  printf("%s\r\n", UART2RxBuf);
+		  dispose(UART2RxBuf);
+		  decoderDebugOutput();
 		  UART2_Clear();
 	  }
     /* USER CODE END WHILE */
