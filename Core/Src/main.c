@@ -82,24 +82,29 @@ unsigned char UART2RxBuf[1024] = {0};
 unsigned char UART2RxFlg       = 0;
 unsigned int  UART2RxCnt       = 0;
 unsigned char UART2Rxtmp[1]    = {0};
+unsigned char UART2RxUklRdFlg  = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart->Instance == USART2) {
-		if (UART2RxCnt < 1024) UART2RxBuf[UART2RxCnt ++] = UART2Rxtmp[0];
+	if ((huart->Instance == USART2) && UART2RxUklRdFlg) {
+		if (!(UART2Rxtmp[0]^0x0A) || !(UART2Rxtmp[0]^0x0D)) {
+			if (UART2RxCnt) {UART2RxFlg = 1;} return;
+		} if (UART2RxCnt < 1024) UART2RxBuf[UART2RxCnt ++] = UART2Rxtmp[0];
 		else {UART2RxFlg = 1; printf("[UART2IT] buffer overflow\r\n"); return;}
-		if ((!(UART2Rxtmp[0]^0x0A)) || (!(UART2Rxtmp[0]^0x0D))) {
-			UART2RxFlg = 1; return;
-		} HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+		HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
 	}
 }
 
 void UART2_Clear() {
-	// memset(UART2RxBuf, 0, sizeof UART2RxBuf);
 	for (int i=0; i < UART2RxCnt; ++ i) UART2RxBuf[i] = 0;
-	UART2RxFlg = UART2RxCnt = 0;
+	UART2RxFlg = UART2RxCnt = UART2RxUklRdFlg = 0;
 }
 
-#define USART2_IT_Start() HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+#define UART2RxUklRd(); {UART2RxUklRdFlg = 1; HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);}
+
+//void UART2RxUklRd() {
+//	UART2RxUklRdFlg = 1;
+//	HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+//}
 
 /* USER CODE END 0 */
 
@@ -137,15 +142,18 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+  UART2RxUklRdFlg = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  //UART2RxUklRd();
   while (1)
   {
-	  HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);
+	  UART2RxUklRd();
 	  if (UART2RxFlg) {
-		  HAL_UART_Transmit(&huart1, UART2RxBuf, UART2RxCnt, 0x10);
+		  printf("%s\r\n", UART2RxBuf);
 		  UART2_Clear();
 	  }
     /* USER CODE END WHILE */
