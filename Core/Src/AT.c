@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "main.h"
+#include "AT.h"
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -26,7 +27,6 @@ struct at_cmd_hanld_t at_cmd_hanld[] = {
 
 	{"AT+BTMODE", AT_Send, AT_Return},
 	{"AT+ROLE", AT_Send, AT_Return},
-
 
 	{"AT+NAME", AT_Send, AT_Return},
 	{"AT+PIN", AT_Send, AT_Return},
@@ -48,7 +48,6 @@ struct at_cmd_hanld_t at_cmd_hanld[] = {
 };
 
 char Buff[2048];
-int SIM7020_state = LNW_INIT;
 
 void str_Capitalized (char *dest, char *str) {
 	int pos = 0, len = strlen (str);
@@ -77,7 +76,7 @@ void CMD_Send(char *buff, char *atcmd, struct tok *tok) {
 	if (tok->num != 0) {
 		for (i=0; i<tok->num; i++) {
 			if(i == 0 && tok->sendstr[i][0] == '?') {
-				sprintf(temp,"%s",tok->sendstr[i]);
+				sprintf(temp,"=%s",tok->sendstr[i]);
 				strcat(buff,temp);
 			} else if(i == 0 && tok->sendstr[i][0] != '?') {
 				sprintf(temp,"=%s",tok->sendstr[i]);
@@ -94,7 +93,7 @@ u8 AT_Send(char *atcmd, struct tok *tok) {
 	int i; char buff[256];
 	for(i=0; i<Retime; ++ i) {
 		CMD_Send(buff, atcmd, tok);
-		HAL_UART_Transmit_IT(&huart6, (uint8_t*)buff, strlen(buff));
+		HAL_UART_Transmit_IT(&huart2, (uint8_t*)buff, strlen(buff));
 		if(!AT_Return(tok->ret, 1)) {return 0;}
 	} return 1;
 }
@@ -104,7 +103,7 @@ u8 AT_Return(char *str, int flag) {
 	Time_count = Timeout;
 	memset(Buff, 0, sizeof Buff);
 	while(Time_count --) {
-		if (flag) HAL_UART_Receive(&huart6, (uint8_t *)Buff, sizeof Buff, 100);
+		if (flag) HAL_UART_Receive(&huart2, (uint8_t *)Buff, sizeof Buff, 100);
 		if(strstr((const char *)Buff,str)!=NULL) {return 0;}
 		HAL_Delay(1);
 	} return 1;

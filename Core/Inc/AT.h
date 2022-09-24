@@ -36,16 +36,12 @@ struct at_cmd_hanld_t {
 #define Timeout            10
 #define Retime              2
 
-#define LNW_INIT            0
-#define SET_LNW_PARAMETER   1
-#define CONNECT_OK          2
-
-int AT_CMD_Dispose(struct tok *tok);
+u8 AT_CMD_Dispose(struct tok *tok);
 
 void CMD_Send(char *buff, char *atcmd, struct tok *tok);
 
-int AT_Send(char *atcmd, struct tok *tok);
+u8 AT_Send(char *atcmd, struct tok *tok);
 
-int AT_Return(char *str, int flag);
+u8 AT_Return(char *str, int flag);
 
 void Buff_clear(struct tok *tok);

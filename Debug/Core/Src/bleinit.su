@@ -1,0 +1,17 @@
+bleinit.c:30:4:Set_Default	16	static
+bleinit.c:41:4:BLE_reboot	16	static
+bleinit.c:52:4:Qst_UART_Baud	16	static
+bleinit.c:64:4:Set_UART_Baud	16	static
+bleinit.c:77:4:Qst_Role	16	static
+bleinit.c:89:4:Set_Role	16	static
+bleinit.c:102:4:Qst_SPP_Name	16	static
+bleinit.c:114:4:Set_SPP_Name	16	static
+bleinit.c:127:4:Qst_BLE_Name	16	static
+bleinit.c:139:4:Set_BLE_Name	16	static
+bleinit.c:152:4:Qst_PIN	16	static
+bleinit.c:164:4:Set_PIN	16	static
+bleinit.c:177:4:Qst_BLE	16	static
+bleinit.c:189:4:Set_BLE	16	static
+bleinit.c:202:4:Qst_TUUID	16	static
+bleinit.c:214:4:Set_TUUID	16	static
+bleinit.c:232:6:BLE_INIT	8	static

@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "decoder.h"
+#include "bleinit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +51,8 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
+extern int BLE_state;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,6 +64,7 @@ static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN PFP */
+
 
 /* USER CODE END PFP */
 
@@ -149,6 +153,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  while (BLE_state^ALL_GREEN) BLE_INIT();
+  printf("[BLEINIT] SUCCESS.\r\n");
+
   //UART2RxUklRd();
   while (1)
   {
