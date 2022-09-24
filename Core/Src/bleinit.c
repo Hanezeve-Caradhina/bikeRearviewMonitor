@@ -157,7 +157,7 @@ u8 Qst_PIN(void) {
 	u8 ret = AT_CMD_Dispose(&tok);
 	Buff_clear(&tok);
 	if(ret) printf("[BLEINIT][ERR]Q: PIN not correct\r\n");
-	else printf("[BLEINIT][SUC]Q: PIN name now is %s\r\n", PIN);
+	else printf("[BLEINIT][SUC]Q: PIN now is %s\r\n", PIN);
 	return ret;
 }
 
@@ -182,7 +182,7 @@ u8 Qst_BLE(void) {
 	u8 ret = AT_CMD_Dispose(&tok);
 	Buff_clear(&tok);
 	if(ret) printf("[BLEINIT][ERR]Q: BLE not correct\r\n");
-	else printf("[BLEINIT][SUC]Q: BLE name now is %s\r\n", "1");
+	else printf("[BLEINIT][SUC]Q: BLE now is %s\r\n", "1");
 	return ret;
 }
 
@@ -207,7 +207,7 @@ u8 Qst_TUUID(void) {
 	u8 ret = AT_CMD_Dispose(&tok);
 	Buff_clear(&tok);
 	if(ret) printf("[BLEINIT][ERR]Q: TUUID not correct\r\n");
-	else printf("[BLEINIT][SUC]Q: TUUID name now is %s\r\n", TUUID);
+	else printf("[BLEINIT][SUC]Q: TUUID now is %s\r\n", TUUID);
 	return ret;
 }
 
