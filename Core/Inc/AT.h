@@ -29,8 +29,8 @@ struct tok {
 
 struct at_cmd_hanld_t {
 	char *atcmd;
-	int (*send_hanld)   (char *atcmd, struct tok *tok);
-	int (*return_hanld) (char *str, int flag);
+	u8 (*send_hanld)   (char *atcmd, struct tok *tok);
+	u8 (*return_hanld) (char *str, int flag);
 };
 
 #define Timeout            10

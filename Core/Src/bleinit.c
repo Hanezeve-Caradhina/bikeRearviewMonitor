@@ -17,7 +17,7 @@ typedef uint32_t u32;
 extern struct tok tok;
 extern char Buff[256];
 
-char BAUD[6]     = "9600";
+char BAUD[6]     = "115200";
 char ROLE[2][7]  = {"S", "Slave"};
 char NAME[2][10] = {"HCRCVBLE", "HCRCVSPP"};
 char PIN[6]      = "2501";
@@ -178,11 +178,11 @@ u8 Qst_BLE(void) {
 	strcpy(tok.name, "AT+BLE");
 	tok.num = 1;
 	strcpy(tok.sendstr[0], "?");
-	sprintf(tok.ret, "OK+BLE=%s", "1");
+	strcpy(tok.ret, "OK+BLE=0");
 	u8 ret = AT_CMD_Dispose(&tok);
 	Buff_clear(&tok);
 	if(ret) printf("[BLEINIT][ERR]Q: BLE not correct\r\n");
-	else printf("[BLEINIT][SUC]Q: BLE now is %s\r\n", "1");
+	else printf("[BLEINIT][SUC]Q: BLE now is %s\r\n", "0");
 	return ret;
 }
 
@@ -190,12 +190,12 @@ u8 Set_BLE(void) {
 	if (!Qst_BLE()) return 0;
 	strcpy(tok.name, "AT+BLE");
 	tok.num = 1;
-	strcpy(tok.sendstr[0], "1");
-	strcpy(tok.ret, "OK+BLE=1");
+	strcpy(tok.sendstr[0], "0");
+	strcpy(tok.ret, "OK+BLE=0");
 	u8 ret = AT_CMD_Dispose(&tok);
 	Buff_clear(&tok);
 	if(ret) printf("[BLEINIT][ERR] BLE set fail!\r\n");
-	else printf("[BLEINIT][SUC] BLE set as %s\r\n", "1");
+	else printf("[BLEINIT][SUC] BLE set as %s\r\n", "0");
 	return ret;
 }
 

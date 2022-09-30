@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "decoder.h"
 #include "bleinit.h"
+#include "battery.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,7 +63,6 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
-
 /* USER CODE BEGIN PFP */
 
 
@@ -105,6 +105,7 @@ void UART2_Clear() {
 }
 
 #define UART2RxUklRd(); {UART2RxUklRdFlg = 1; HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);}
+#define TIME_TO_PRINT ((int)HAL_GetTick())
 
 //void UART2RxUklRd() {
 //	UART2RxUklRdFlg = 1;
@@ -148,6 +149,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   UART2RxUklRdFlg = 0;
+  ADC_Calibration();
 
   /* USER CODE END 2 */
 
@@ -162,7 +164,8 @@ int main(void)
   {
 	  UART2RxUklRd();
 	  if (UART2RxFlg) {
-		  printf("%s\r\n", UART2RxBuf);
+		  Read_Battery_Life();
+		  printf("[%d]%s\r\n", TIME_TO_PRINT, UART2RxBuf);
 		  dispose(UART2RxBuf);
 		  decoderDebugOutput();
 		  UART2_Clear();
@@ -234,9 +237,9 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.Resolution = ADC_RESOLUTION_8B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -352,7 +355,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
