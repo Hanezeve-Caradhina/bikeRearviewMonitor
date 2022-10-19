@@ -1,4 +1,5 @@
 "Core/Src/AT.o"
+"Core/Src/TFT_control.o"
 "Core/Src/battery.o"
 "Core/Src/bleinit.o"
 "Core/Src/decoder.o"

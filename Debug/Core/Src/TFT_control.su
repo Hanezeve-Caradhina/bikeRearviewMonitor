@@ -1,0 +1,9 @@
+TFT_control.c:18:6:Set_TFT_Backlight_PWM	16	static
+TFT_control.c:22:6:Cnange_TFT_Backlight	8	static
+TFT_control.c:37:4:SPI_WriteByte	16	static
+TFT_control.c:41:6:TFT_WriteComm	16	static
+TFT_control.c:48:6:TFT_WriteData	16	static
+TFT_control.c:55:6:TFT_WriteData_u16	16	static
+TFT_control.c:63:6:TFT_WriteRegi	16	static
+TFT_control.c:68:6:TFT_ReStart	8	static
+TFT_control.c:75:6:TFT_INIT	8	static

@@ -26,6 +26,7 @@
 #include "decoder.h"
 #include "bleinit.h"
 #include "battery.h"
+#include "TFT_control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,8 @@ ADC_HandleTypeDef hadc1;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
@@ -63,6 +66,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 
@@ -99,6 +103,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+//	if(GPIO_Pin == GPIO_PIN_0) {
+//		if (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)) {
+//			HAL_Delay(20);
+//			if (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)) {
+//				Cnange_TFT_Backlight();
+//				while (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0));
+//			}
+//		}
+//	}
+}
+
 void UART2_Clear() {
 	for (int i=0; i < UART2RxCnt; ++ i) UART2RxBuf[i] = 0;
 	UART2RxFlg = UART2RxCnt = UART2RxUklRdFlg = 0;
@@ -106,6 +122,8 @@ void UART2_Clear() {
 
 #define UART2RxUklRd(); {UART2RxUklRdFlg = 1; HAL_UART_Receive_IT(&huart2, (uint8_t *)UART2Rxtmp, 1);}
 #define TIME_TO_PRINT ((int)HAL_GetTick())
+
+//#define TFTPWMTEST
 
 //void UART2RxUklRd() {
 //	UART2RxUklRdFlg = 1;
@@ -146,22 +164,51 @@ int main(void)
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_SPI1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   UART2RxUklRdFlg = 0;
   ADC_Calibration();
+  TFT_INIT();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+  Set_TFT_Backlight_PWM(100);
   while (BLE_state^ALL_GREEN) BLE_INIT();
   printf("[BLEINIT] SUCCESS.\r\n");
+
+#ifdef TFTPWMTEST
+  int PWM_TEST_STA = 0;
+  int PWM_UP_OR_DN = 1;
+  int PWM_UP_CNTER = 0;
+#endif
 
   //UART2RxUklRd();
   while (1)
   {
+
+#ifdef TFTPWMTEST
+	  if (++ PWM_UP_CNTER >= 10) {
+		  switch(PWM_UP_OR_DN) {
+		  case 1:
+			  if (PWM_TEST_STA < 100) Set_TFT_Backlight_PWM((uint8_t)PWM_TEST_STA ++);
+			  else PWM_UP_OR_DN = 0;
+			  break;
+		  case 0:
+			  if (PWM_TEST_STA) Set_TFT_Backlight_PWM((uint8_t)PWM_TEST_STA --);
+			  else PWM_UP_OR_DN = 1;
+			  break;
+		  default:
+			  break;
+		  } PWM_UP_CNTER = 0;
+	  } HAL_Delay(0);
+	  //printf("[PWMTEST] PWM: %d\r\n", PWM_TEST_STA);
+#endif
+
 	  UART2RxUklRd();
 	  if (UART2RxFlg) {
 		  Read_Battery_Life();
@@ -170,6 +217,10 @@ int main(void)
 		  decoderDebugOutput();
 		  UART2_Clear();
 	  }
+
+	  // PWM test
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -305,6 +356,65 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 160-1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 100-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -379,10 +489,31 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB5 PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 }
 
