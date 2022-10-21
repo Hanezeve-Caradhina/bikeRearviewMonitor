@@ -15,6 +15,10 @@ typedef uint32_t u32;
 
 u8 BgPWMLight = 99;
 
+#define XMAX 240
+#define YMAX 400
+#define TTOT 96000
+
 void Set_TFT_Backlight_PWM(u8 PWMtoSet) {
 	__HAL_TIM_SetCompare(&htim2, TIM_CHANNEL_3, PWMtoSet);
 }
@@ -34,29 +38,33 @@ void Cnange_TFT_Backlight() {
 #define	DISPLAY_RST_SET  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET)
 #define	DISPLAY_RST_CLR  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET)
 
-u8 SPI_WriteByte(uint8_t *content, uint16_t size) {
+u8 SPI_WriteByte(u8 *content, u16 size) {
 	return HAL_SPI_Transmit(&hspi1, content, size, 1000);
+}
+
+void SPI_WriteByte_u8(u8 content) {
+	SPI_WriteByte(&content, 1);
 }
 
 void TFT_WriteComm(u8 addr) {
 	DISPLAY_CS_CLR;
 	DISPLAY_RS_CLR;
-	SPI_WriteByte(&addr, 1);
+	SPI_WriteByte_u8(addr);
 	DISPLAY_CS_SET;
 }
 
 void TFT_WriteData(u8 data) {
 	DISPLAY_CS_CLR;
 	DISPLAY_RS_SET;
-	SPI_WriteByte(&data, 1);
+	SPI_WriteByte_u8(data);
 	DISPLAY_CS_SET;
 }
 
 void TFT_WriteData_u16(u16 data) {
 	DISPLAY_CS_CLR;
 	DISPLAY_RS_SET;
-	TFT_WriteData(data>>8);
-	TFT_WriteData(data);
+	SPI_WriteByte_u8(data >> 8);
+	SPI_WriteByte_u8(data&0xFF);
 	DISPLAY_CS_SET;
 }
 
@@ -70,6 +78,69 @@ void TFT_ReStart(void) {
 	HAL_Delay(200);
 	DISPLAY_RST_SET;
 	HAL_Delay(100);
+}
+
+void TFT_SelectPos(u16 xpos, u16 ypos) {
+	TFT_WriteComm(0x2A);
+	TFT_WriteData_u16(xpos);
+	TFT_WriteComm(0x2B);
+	TFT_WriteData_u16(ypos);
+	TFT_WriteComm(0x2C);
+}
+
+void TFT_SelectRange(u16 xfr, u16 xto, u16 yfr, u16 yto) {
+	TFT_WriteComm(0x02);
+	TFT_WriteData(xfr>>8);
+	TFT_WriteComm(0x03);
+	TFT_WriteData(xfr&0xFF);
+	TFT_WriteComm(0x04);
+	TFT_WriteData(xto>>8);
+	TFT_WriteComm(0x05);
+	TFT_WriteData(xto&0xFF);
+
+	TFT_WriteComm(0x06);
+	TFT_WriteData(yfr>>8);
+	TFT_WriteComm(0x07);
+	TFT_WriteData(yfr&0xFF);
+	TFT_WriteComm(0x08);
+	TFT_WriteData(yto>>8);
+	TFT_WriteComm(0x09);
+	TFT_WriteData(yto&0xFF);
+
+	TFT_WriteComm(0x22);
+}
+
+void TFT_DrawRect(u16 xpos, u16 ypos, u16 w, u16 h, u16 color) {
+	TFT_SelectRange(xpos, xpos+w-1, ypos, ypos+h-1);
+	TFT_WriteData_u16(color);
+}
+
+void TFT_DrawPoint(u16 xpos, u16 ypos, u16 color) {
+
+	TFT_SelectRange(xpos, xpos, ypos, ypos);
+	TFT_WriteData_u16(color);
+	//TFT_SelectPos(xpos, ypos);
+	//TFT_WriteData_u16(color);
+}
+
+//void TFT_SetRegion(u16 xfr, u16 xto, u16 yfr, u16 yto) {
+//	TFT_WriteComm(0x2A);
+//	TFT_WriteData_u16(xfr);
+//	TFT_WriteData_u16(xto);
+//	TFT_WriteComm(0x2B);
+//	TFT_WriteData_u16(yfr);
+//	TFT_WriteData_u16(yto);
+//	TFT_WriteComm(0x2C);
+//}
+
+void TFT_Clear(u16 color) {
+	TFT_SetRegion(0, XMAX-1, 0, YMAX-1);
+	DISPLAY_CS_CLR;
+	DISPLAY_RS_SET;
+	for (u8 i=0; i < TTOT; ++ i) {
+		SPI_WriteByte_u8(color >> 8);
+		SPI_WriteByte_u8(color&0xFF);
+	} DISPLAY_CS_SET;
 }
 
 void TFT_INIT(void) {

@@ -218,6 +218,18 @@ int main(void)
 		  UART2_Clear();
 	  }
 
+//	  for (uint16_t i=0; i<0xFFFF; ++ i) {
+//		  TFT_Clear(i); HAL_Delay(10);
+//	  }
+
+	  for (uint8_t i=40; i<=200; ++ i) {
+		  for (uint8_t j=50; j<=350; ++ j) {
+			  TFT_DrawPoint(i, j, 0x0);
+		  }
+	  }
+
+	  TFT_DrawRect(50, 50, 100, 100, 0x00);
+
 	  // PWM test
 
 
