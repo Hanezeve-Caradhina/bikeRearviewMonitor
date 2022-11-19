@@ -169,6 +169,7 @@ int main(void)
 
   UART2RxUklRdFlg = 0;
   ADC_Calibration();
+  TFT_ReStart();
   TFT_INIT();
 
   /* USER CODE END 2 */
@@ -178,6 +179,7 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   Set_TFT_Backlight_PWM(100);
+  TFT_DrawRect((u16)0, (u16)0, (u16)100, (u16)100, 0xFFFF);
   while (BLE_state^ALL_GREEN) BLE_INIT();
   printf("[BLEINIT] SUCCESS.\r\n");
 
@@ -210,6 +212,7 @@ int main(void)
 #endif
 
 	  UART2RxUklRd();
+	  TFT_DrawRect(50, 100, 50, 100, 0x001F);
 	  if (UART2RxFlg) {
 		  Read_Battery_Life();
 		  printf("[%d]%s\r\n", TIME_TO_PRINT, UART2RxBuf);
@@ -217,18 +220,6 @@ int main(void)
 		  decoderDebugOutput();
 		  UART2_Clear();
 	  }
-
-//	  for (uint16_t i=0; i<0xFFFF; ++ i) {
-//		  TFT_Clear(i); HAL_Delay(10);
-//	  }
-
-	  for (uint8_t i=40; i<=200; ++ i) {
-		  for (uint8_t j=50; j<=350; ++ j) {
-			  TFT_DrawPoint(i, j, 0x0);
-		  }
-	  }
-
-	  TFT_DrawRect(50, 50, 100, 100, 0x00);
 
 	  // PWM test
 
@@ -350,9 +341,9 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

@@ -18,6 +18,7 @@ extern SPI_HandleTypeDef hspi1;
 void Set_TFT_Backlight_PWM(u8);
 void Cnange_TFT_Backlight(void);
 void TFT_INIT(void);
+void TFT_ReStart(void);
 void TFT_Clear(u16);
 void TFT_DrawPoint(u16, u16, u16);
 void TFT_DrawRect(u16, u16, u16, u16, u16);
