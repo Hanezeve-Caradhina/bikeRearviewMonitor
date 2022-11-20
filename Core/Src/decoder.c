@@ -1,12 +1,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "TFT_control.h"
+#include "main.h"
 
 typedef uint8_t   u8;
 typedef uint16_t  u16;
 typedef uint32_t  u32;
 
-#define MAX_VEHICLE_CNT 100
+#define MAX_VEHICLE_CNT 10
 #define IN_PROSESS_STRING_OUTPUT
 
 struct vehicle {
@@ -14,9 +16,9 @@ struct vehicle {
 	u16 xVal;
 	u16 yVal;
 	u8  alt;
-} data[MAX_VEHICLE_CNT];
+} data[10][2];
 
-u8 cnt;
+u8 cnt, dataPos;
 
 u16 readNum (u8 **str) {
 	u16 ret = 0ll;
@@ -28,20 +30,17 @@ u16 readNum (u8 **str) {
 }
 
 int dispose (unsigned char *str) {
+	dataPos = !dataPos;
 	u8 *p = (u8*) strstr((const char *) str, "-=t:");
 	cnt = readNum(&p);
 	for (int i=0; i<cnt; ++ i) {
-		data[i].cat  = readNum(&p);
-		// printf("[s]%s\r\n", p);
+		data[i][dataPos].cat  = readNum(&p);
 		if (*p ^ ',') return 1;
-		data[i].xVal = readNum(&p);
-		// printf("[s]%s\r\n", p);
+		data[i][dataPos].xVal = readNum(&p);
 		if (*p ^ ',') return 1;
-		data[i].yVal = readNum(&p);
-		// printf("[s]%s\r\n", p);
+		data[i][dataPos].yVal = readNum(&p);
 		if (*p ^ ',') return 1;
-		data[i].alt  = readNum(&p);
-		// printf("[s]%s\r\n", p);
+		data[i][dataPos].alt  = readNum(&p);
 		if (*p ^ ';') return 1;
 	} return 0;
 }
@@ -49,8 +48,22 @@ int dispose (unsigned char *str) {
 void decoderDebugOutput () {
 	printf("n=%d\r\n", cnt);
 	for (int i=0; i<cnt; ++ i) {
-		printf("[%d] ALT: %d\r\n", i, data[i].alt);
-		printf("cat = %d\r\n", data[i].cat);
-		printf("map = %d, %d\r\n", data[i].xVal, data[i].yVal);
+		printf("[%d] ALT: %d\r\n", i, data[i][dataPos].alt);
+		printf("cat = %d\r\n", data[i][dataPos].cat);
+		printf("map = %d, %d\r\n", data[i][dataPos].xVal, data[i][dataPos].yVal);
 	}
+}
+
+void situDraw (void) {
+	dataPos = !dataPos;
+
+	for (int i=0; i<cnt; ++ i)
+		Draw_Circle(data[i][dataPos].xVal, data[i][dataPos].yVal, data[i][dataPos].cat==2? 30:15, BLACK);
+
+	dataPos = !dataPos;
+
+	for (int i=0; i<cnt; ++ i)
+		Draw_Circle(data[i][dataPos].xVal, data[i][dataPos].yVal, data[i][dataPos].cat==2? 30:15, data[i][dataPos].alt? YELLOW:(data[i][dataPos].cat==2? GREEN:GBLUE));
+
+	//Draw_Circle(xpos, ypos, r, color, 1);
 }

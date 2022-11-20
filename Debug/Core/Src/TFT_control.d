@@ -29,7 +29,8 @@ Core/Src/TFT_control.o: ../Core/Src/TFT_control.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
+ ../Core/Inc/TFT_control.h ../Core/Inc/main.h ../Core/Inc/ascii_table.h
 
 ../Core/Inc/main.h:
 
@@ -94,3 +95,9 @@ Core/Src/TFT_control.o: ../Core/Src/TFT_control.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
+
+../Core/Inc/TFT_control.h:
+
+../Core/Inc/main.h:
+
+../Core/Inc/ascii_table.h:

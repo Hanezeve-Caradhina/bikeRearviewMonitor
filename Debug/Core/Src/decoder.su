@@ -1,3 +1,4 @@
-decoder.c:21:5:readNum	24	static
-decoder.c:30:5:dispose	24	static
-decoder.c:49:6:decoderDebugOutput	16	static
+decoder.c:23:5:readNum	24	static
+decoder.c:32:5:dispose	32	static
+decoder.c:48:6:decoderDebugOutput	16	static
+decoder.c:57:6:situDraw	24	static

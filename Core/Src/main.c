@@ -65,8 +65,8 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 
@@ -163,13 +163,13 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_ADC1_Init();
-  MX_SPI1_Init();
   MX_TIM2_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   UART2RxUklRdFlg = 0;
   ADC_Calibration();
-  TFT_ReStart();
+  //TFT_ReStart();
   TFT_INIT();
 
   /* USER CODE END 2 */
@@ -179,7 +179,14 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   Set_TFT_Backlight_PWM(100);
-  TFT_DrawRect((u16)0, (u16)0, (u16)100, (u16)100, 0xFFFF);
+  //LCD_Fill(10, 10, 50, 50, 0XFFE0);
+
+  //Draw_Circle(100, 100, 30, 0xFFE0);
+
+  Read_Battery_Life();
+  printf("[%d]%s\r\n", TIME_TO_PRINT, UART2RxBuf);
+
+  //TFT_DrawRect((u16)0, (u16)0, (u16)100, (u16)100, 0xFFFF);
   while (BLE_state^ALL_GREEN) BLE_INIT();
   printf("[BLEINIT] SUCCESS.\r\n");
 
@@ -192,6 +199,10 @@ int main(void)
   //UART2RxUklRd();
   while (1)
   {
+
+	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) == 0) {
+		  TFT_INIT(); LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
+	  }
 
 #ifdef TFTPWMTEST
 	  if (++ PWM_UP_CNTER >= 10) {
@@ -212,13 +223,14 @@ int main(void)
 #endif
 
 	  UART2RxUklRd();
-	  TFT_DrawRect(50, 100, 50, 100, 0x001F);
+	  //TFT_DrawRect(50, 100, 50, 100, 0x001F);
 	  if (UART2RxFlg) {
-		  Read_Battery_Life();
 		  printf("[%d]%s\r\n", TIME_TO_PRINT, UART2RxBuf);
 		  dispose(UART2RxBuf);
 		  decoderDebugOutput();
+		  situDraw();
 		  UART2_Clear();
+		  Read_Battery_Life();
 	  }
 
 	  // PWM test
@@ -341,9 +353,9 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -506,6 +518,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB5 PB6 PB7 */
   GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;

@@ -8,16 +8,17 @@
 
 #include "main.h"
 #include <stdio.h>
+#include "TFT_control.h"
+#include "ascii_table.h"
+
+//#define HX_USAGE
+#define NWE_USAGE
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 
 u8 BgPWMLight = 99;
-
-#define XMAX 240
-#define YMAX 400
-#define TTOT 96000
 
 #define ADDR_PREFIX 0x70
 #define DATA_PREFIX 0x72
@@ -41,11 +42,34 @@ void Cnange_TFT_Backlight() {
 #define	DISPLAY_RST_SET  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET)
 #define	DISPLAY_RST_CLR  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET)
 
+#define	DISPLAY_MOSI_SET  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET)
+#define	DISPLAY_MOSI_CLR  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET)
+
+#define	DISPLAY_SCK_SET  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET)
+#define	DISPLAY_SCK_CLR  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET)
+
+const int USE_HORIZONTAL = 2;
+
+uint8_t oldMap[LCD_W][LCD_H];
+
+void TFT_WriteBus(u8 dat) {
+	DISPLAY_CS_CLR;
+	for (u8 i=0; i<8; ++ i) {
+		DISPLAY_SCK_CLR;
+		if (dat & 0x80) DISPLAY_MOSI_SET;
+		else DISPLAY_MOSI_CLR;
+		DISPLAY_SCK_SET;
+		dat <<= 1;
+	} DISPLAY_CS_SET;
+}
+
 u8 SPI_WriteByte(u8 *content, u16 size) {
-	return HAL_SPI_Transmit(&hspi1, content, size, 10);
+	return 0;
+	//return HAL_SPI_Transmit(&hspi1, content, size, 10);
 }
 
 void SPI_WriteByte_u8(u8 content) {
+	//TFT_WriteBus(content);
 	HAL_SPI_Transmit(&hspi1, &content, 1, 10);
 	//SPI_WriteByte(&content, 1);
 }
@@ -87,8 +111,36 @@ void TFT_ReStart(void) {
 	HAL_Delay(100);
 }
 
+void LCD_WR_REG(u8 dat) {
+	DISPLAY_RS_CLR;
+	//SPI_WriteByte_u8(dat>>8);
+	SPI_WriteByte_u8(dat);
+	DISPLAY_RS_SET;
+}
+
+void LCD_WR_DATA8(u16 dat) {
+	DISPLAY_RS_SET;
+	SPI_WriteByte_u8(dat);
+}
+
+void LCD_WR_DATA(u16 dat) {
+	DISPLAY_RS_SET;
+	SPI_WriteByte_u8(dat>>8);
+	SPI_WriteByte_u8(dat);
+}
+
+void LCD_Address_Set(u16 x1, u16 y1, u16 x2, u16 y2) {
+	LCD_WR_REG(0x2a);
+	LCD_WR_DATA(x1);
+	LCD_WR_DATA(x2);
+	LCD_WR_REG(0x2b);
+	LCD_WR_DATA(y1);
+	LCD_WR_DATA(y2);
+	LCD_WR_REG(0x2c);
+}
+
 void TFT_SelectRange(u16 xfr, u16 xto, u16 yfr, u16 yto) {
-	TFT_WriteComm(0x02); TFT_WriteData(xfr >> u'an8);
+	TFT_WriteComm(0x02); TFT_WriteData(xfr >> 8);
 	TFT_WriteComm(0x03); TFT_WriteData(xfr&0xFF);
 	TFT_WriteComm(0x04); TFT_WriteData(xto >> 8);
 	TFT_WriteComm(0x05); TFT_WriteData(xto&0xFF);
@@ -114,7 +166,6 @@ void TFT_DrawRect(u16 xpos, u16 ypos, u16 w, u16 h, u16 color) {
 }
 
 void TFT_DrawPoint(u16 xpos, u16 ypos, u16 color) {
-
 	TFT_SelectRange(xpos, xpos, ypos, ypos);
 	DISPLAY_CS_CLR;
 	DISPLAY_RS_SET;
@@ -133,8 +184,120 @@ void TFT_Clear(u16 color) {
 	} DISPLAY_CS_SET;
 }
 
+void LCD_Fill(u16 xsta, u16 ysta, u16 xend, u16 yend, u16 color) {
+	u16 i,j;
+	LCD_Address_Set(xsta, ysta, xend-1, yend-1);
+	for(i = ysta; i<yend; ++ i) {
+		for(j = xsta; j<xend; ++ j) {
+			LCD_WR_DATA(color);
+		}
+	}
+}
+
+
+void LCD_DrawPoint(u16 x, u16 y, u16 color) {
+	if (x<0||x>LCD_W||y<0||y>LCD_H) return;
+	LCD_Address_Set(x, y, x, y);
+	LCD_WR_DATA(color);
+}
+
+void LCD_DrawLine(u16 x1, u16 y1, u16 x2, u16 y2, u16 color) {
+	u16 t;
+	int xerr=0, yerr=0, delta_x, delta_y, distance;
+	int incx, incy, uRow, uCol;
+	delta_x = x2-x1; //计算坐标增量
+	delta_y = y2-y1;
+	uRow = x1;//画线起点坐标
+	uCol = y1;
+	if(delta_x > 0) incx = 1; //设置单步方向
+	else if (delta_x == 0) incx = 0;//垂直线
+	else {incx = -1; delta_x = -delta_x;}
+	if(delta_y > 0) incy = 1;
+	else if (delta_y == 0) incy = 0;//水平线
+	else {incy = -1; delta_y = -delta_y;}
+	if(delta_x > delta_y) distance = delta_x; //选取基本增量坐标轴
+	else distance = delta_y;
+	for(t = 0; t<distance+1; ++ t) {
+		LCD_DrawPoint(uRow, uCol, color);
+		xerr += delta_x;
+		yerr += delta_y;
+		if(xerr > distance) {
+			xerr -= distance;
+			uRow += incx;
+		} if(yerr > distance) {
+			yerr -= distance;
+			uCol += incy;
+		}
+	}
+}
+
+void LCD_DrawRectangle(u16 x1, u16 y1, u16 x2, u16 y2,u16 color) {
+	LCD_DrawLine(x1,y1,x2,y1,color);
+	LCD_DrawLine(x1,y1,x1,y2,color);
+	LCD_DrawLine(x1,y2,x2,y2,color);
+	LCD_DrawLine(x2,y1,x2,y2,color);
+}
+
+void Draw_Circle(u16 x0,u16 y0,u8 r,u16 color) {
+	int a,b;
+	a = 0; b = r;
+	while(a <= b) {
+		LCD_DrawPoint(x0-b, y0-a, color);             //3
+		LCD_DrawPoint(x0+b, y0-a, color);             //0
+		LCD_DrawPoint(x0-a, y0+b, color);             //1
+		LCD_DrawPoint(x0-a, y0-b, color);             //2
+		LCD_DrawPoint(x0+b, y0+a, color);             //4
+		LCD_DrawPoint(x0+a, y0-b, color);             //5
+		LCD_DrawPoint(x0+a, y0+b, color);             //6
+		LCD_DrawPoint(x0-b, y0+a, color);             //7
+		++ a;
+		if((a*a+b*b)>(r*r)) b --;
+	}
+}
+
+
+void LCD_ShowChar(u16 x,u16 y,u8 num,u16 fc,u16 bc,u8 sizey,u8 mode) {
+	u8 temp, sizex, t, m = 0;
+	u16 i, TypefaceNum;
+	u16 x0 = x;
+	sizex = sizey/2;
+	TypefaceNum = (sizex/8+((sizex%8)?1:0))*sizey;
+	num = num-' ';
+	LCD_Address_Set(x, y, x+sizex-1, y+sizey-1);
+	for(i = 0; i<TypefaceNum; ++ i) {
+		if(sizey==12) temp=ascii_1206[num][i];
+		else if(sizey==16) temp=ascii_1608[num][i];
+		//else if(sizey==24) temp=ascii_2412[num][i];
+		//else if(sizey==32) temp=ascii_3216[num][i];
+		else return;
+		for(t = 0; t<8; ++ t) {
+			if(!mode) {
+				if(temp&(0x01<<t)) LCD_WR_DATA(fc);
+				else LCD_WR_DATA(bc);
+				++ m;
+				if(m%sizex==0) {m=0; break;}
+			} else {
+				if(temp&(0x01<<t))LCD_DrawPoint(x,y,fc);
+				++ x;
+				if((x-x0)==sizex) {x=x0; y++;break;}
+			}
+		}
+	}
+}
+
+
+void LCD_ShowString(u16 x, u16 y, const u8 *p, u16 fc, u16 bc, u8 sizey, u8 mode) {
+	while(*p!='\0') {
+		LCD_ShowChar(x, y, *p, fc, bc, sizey, mode);
+		x += sizey/2; ++ p;
+	}
+}
+
+
 void TFT_INIT(void) {
 	TFT_ReStart();
+
+#ifdef HX_USAGE
 
 	//HX8352B
 	TFT_WriteComm(0x00E2); TFT_WriteData(0x0015);
@@ -223,5 +386,81 @@ void TFT_INIT(void) {
 	TFT_WriteComm(0x0028); TFT_WriteData(0x0038);
 	HAL_Delay(40); // Waiting 2 frames al least
 	TFT_WriteComm(0x0028); TFT_WriteData(0x003C);
+#endif
+#ifdef NWE_USAGE
+	//************* Start Initial Sequence **********//
+	LCD_WR_REG(0x11); //Sleep out
+	HAL_Delay(120);    //Delay 120ms
+	//************* Start Initial Sequence **********//
+	LCD_WR_REG(0Xf0);
+	LCD_WR_DATA8(0xc3);
+	LCD_WR_REG(0Xf0);
+	LCD_WR_DATA8(0x96);
+	LCD_WR_REG(0x36);    // Memory Access Control
+	if(USE_HORIZONTAL==0)LCD_WR_DATA8(0x48);
+	else if(USE_HORIZONTAL==1)LCD_WR_DATA8(0x88);
+	else if(USE_HORIZONTAL==2)LCD_WR_DATA8(0x28);
+	else LCD_WR_DATA8(0xE8);
 
+	LCD_WR_REG(0x3A);
+	LCD_WR_DATA8(0x05);
+
+	LCD_WR_REG(0Xe8);
+	LCD_WR_DATA8(0x40);
+	LCD_WR_DATA8(0x82);
+	LCD_WR_DATA8(0x07);
+	LCD_WR_DATA8(0x18);
+	LCD_WR_DATA8(0x27);
+	LCD_WR_DATA8(0x0a);
+	LCD_WR_DATA8(0xb6);
+	LCD_WR_DATA8(0x33);
+
+	LCD_WR_REG(0Xc5);
+	LCD_WR_DATA8(0x27);
+
+	LCD_WR_REG(0Xc2);
+	LCD_WR_DATA8(0xa7);
+
+	LCD_WR_REG(0Xe0);
+	LCD_WR_DATA8(0xf0);
+	LCD_WR_DATA8(0x01);
+	LCD_WR_DATA8(0x06);
+	LCD_WR_DATA8(0x0f);
+	LCD_WR_DATA8(0x12);
+	LCD_WR_DATA8(0x1d);
+	LCD_WR_DATA8(0x36);
+	LCD_WR_DATA8(0x54);
+	LCD_WR_DATA8(0x44);
+	LCD_WR_DATA8(0x0c);
+	LCD_WR_DATA8(0x18);
+	LCD_WR_DATA8(0x16);
+	LCD_WR_DATA8(0x13);
+	LCD_WR_DATA8(0x15);
+
+	LCD_WR_REG(0Xe1);
+	LCD_WR_DATA8(0xf0);
+	LCD_WR_DATA8(0x01);
+	LCD_WR_DATA8(0x05);
+	LCD_WR_DATA8(0x0a);
+	LCD_WR_DATA8(0x0b);
+	LCD_WR_DATA8(0x07);
+	LCD_WR_DATA8(0x32);
+	LCD_WR_DATA8(0x44);
+	LCD_WR_DATA8(0x44);
+	LCD_WR_DATA8(0x0c);
+	LCD_WR_DATA8(0x18);
+	LCD_WR_DATA8(0x17);
+	LCD_WR_DATA8(0x13);
+	LCD_WR_DATA8(0x16);
+
+	LCD_WR_REG(0Xf0);
+	LCD_WR_DATA8(0x3c);
+
+	LCD_WR_REG(0Xf0);
+	LCD_WR_DATA8(0x69);
+
+	LCD_WR_REG(0X29);
+
+	//LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
+#endif
 }
