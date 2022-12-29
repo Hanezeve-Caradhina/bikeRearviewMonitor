@@ -35,5 +35,5 @@ void Read_Battery_Life() {
 	// double RealVoltage = adcVal * (double)3.3 / (double) adcBase;
 	printf("[ADC Voltage] %d\r\n", (int)adcVal);
 	sprintf(strtmp, "BAT:%d%%", (int)adcVal*100/256);
-	LCD_ShowString(225, 0, (const u8*) strtmp, 0X01CF, 0XC618, 16, 0);
+	LCD_ShowString(215, 0, (const u8*) strtmp, 0X01CF, 0XC618, 16, 0);
 }

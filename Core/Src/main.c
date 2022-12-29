@@ -82,6 +82,8 @@ static void MX_SPI1_Init(void);
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif
 
+char strtmp[30];
+
 PUTCHAR_PROTOTYPE {
 	HAL_UART_Transmit((UART_HandleTypeDef *)&huart1, (uint8_t*)&ch, 1, 0xFFFF);
 	return ch;
@@ -179,22 +181,29 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   Set_TFT_Backlight_PWM(100);
-  //LCD_Fill(10, 10, 50, 50, 0XFFE0);
-
-  //Draw_Circle(100, 100, 30, 0xFFE0);
 
   Read_Battery_Life();
   printf("[%d]%s\r\n", TIME_TO_PRINT, UART2RxBuf);
 
-  //TFT_DrawRect((u16)0, (u16)0, (u16)100, (u16)100, 0xFFFF);
   while (BLE_state^ALL_GREEN) BLE_INIT();
   printf("[BLEINIT] SUCCESS.\r\n");
+
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
 
 #ifdef TFTPWMTEST
   int PWM_TEST_STA = 0;
   int PWM_UP_OR_DN = 1;
   int PWM_UP_CNTER = 0;
 #endif
+
+  Draw_Circle(190, 300, 30, GBLUE);
+  sprintf(strtmp, "%d", 11);
+  LCD_ShowString(190-6, 300-6, (const u8*) strtmp, WHITE, WHITE, 12, 1);
+
+  Draw_Circle(263, 299, 30, GBLUE);
+  sprintf(strtmp, "%d", 11);
+  LCD_ShowString(263-6, 300-6, (const u8*) strtmp, WHITE, WHITE, 12, 1);
 
   //UART2RxUklRd();
   while (1)
@@ -230,7 +239,7 @@ int main(void)
 		  decoderDebugOutput();
 		  situDraw();
 		  UART2_Clear();
-		  Read_Battery_Life();
+		  //Read_Battery_Life();
 	  }
 
 	  // PWM test
@@ -511,13 +520,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_5|GPIO_PIN_6
+                          |GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB1 PB2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
